@@ -1,4 +1,4 @@
-# XAI-project
+# Explainable AI framework
 Explainable AI master thesis work 
 
 ## Abstract 
