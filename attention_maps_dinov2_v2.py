@@ -7,11 +7,12 @@ from torchvision import transforms as pth_transforms
 from PIL import Image
 from transformers import Dinov2ForImageClassification
 
+
 # Configurazione del dispositivo
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Percorsi dei file
-output_dir = "/home/ldistefan/project/output"
+output_dir = os.path.join(os.getcwd(), 'models')
 os.makedirs(output_dir, exist_ok=True)
 
 # Caricamento del modello addestrato
@@ -26,12 +27,13 @@ model.to(device)
 model.eval()
 
 # Processamento dell'immagine
-image_path = '/home/ldistefan/project/data/test/Adenoma/0a4a98cf-ef8a-474a-b814-4c4f3c3537a3.png'
+image_path = os.path.join(os.getcwd(), r'datasets\data\test\Adenoma\28a04a0c-04ae-428e-8e1e-fd647232ba18.png')
+#image_path = '/home/ldistefan/project/data/test/Adenoma/0a4a98cf-ef8a-474a-b814-4c4f3c3537a3.png'
 image_size = (224, 224)
 patch_size = 14
 
 transform = pth_transforms.Compose([
-    pth_transforms.Resize(image_size),
+    pth_transforms.Resize(image_size, interpolation = Image.BICUBIC),
     pth_transforms.ToTensor(),
     pth_transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
 ])
@@ -58,7 +60,14 @@ def get_attention_map(model, img_tensor, device):
 attentions = get_attention_map(model, img_tensor, device)
 
 # Visualizzazione
+# Funzione per chiudere la figura quando si preme 'q'
+def on_key(event):
+    if event.key == 'q':
+        plt.close(event.canvas.figure)
+
+# Visualizzazione
 fig, axes = plt.subplots(1, attentions.shape[0] + 1, figsize=(20, 5))
+fig.canvas.mpl_connect('key_press_event', on_key)
 
 # Mostra immagine originale
 axes[0].imshow(np.array(img))
@@ -67,8 +76,10 @@ axes[0].axis('off')
 
 # Sovrapposizione delle attention maps all'immagine originale
 for i, attn in enumerate(attentions):
-    axes[i+1].imshow(np.array(img), alpha=0.5)  # Visualizza l'immagine originale
-    axes[i+1].imshow(attn, cmap='jet', alpha=0.5)  # Sovrappone la mappa di attenzione
+    img_np = np.transpose(img_tensor.cpu().squeeze(0).numpy(), (1, 2, 0))  # Convert to (224, 224, 3)
+    img_np = np.clip(img_np, 0, 1)  # Clip to the valid range [0, 1]
+    axes[i + 1].imshow(img_np, alpha=0.7)  # Visualizza l'immagine originale
+    axes[i+1].imshow(attn, cmap='jet', alpha=0.3)  # Sovrappone la mappa di attenzione
     axes[i+1].set_title(f'Att Head {i}')
     axes[i+1].axis('off')
 
